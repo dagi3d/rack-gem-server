@@ -31,4 +31,10 @@ describe GemServer do
     File.exists?(uploaded_file).should be_true
   end
   
+  it "should generate the index on public/gems" do
+    gem_index = Gem::Indexer.new("#{APP_ROOT}/public")
+    #Gem::Indexer.stub(:new).and_return(gem_index)
+    Gem::Indexer.should_receive(:new).with("#{APP_ROOT}/public").and_return(gem_index)
+    post "/push", :file => local_file
+  end
 end

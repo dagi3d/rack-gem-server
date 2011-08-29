@@ -1,4 +1,5 @@
 require 'fileutils'
+require 'rubygems/indexer'
 
 class GemServer
   
@@ -18,7 +19,13 @@ class GemServer
     file = request.params['file']
     return [400, {"Content-Type" => "text/html"}, [""]] if file.nil?
     
-    FileUtils.mv file[:tempfile], "#{APP_ROOT}/public/gems/#{file[:filename]}"
+    dst_dir = "#{APP_ROOT}/public/gems"
+    FileUtils.mkdir(dst_dir) unless File.exists?(dst_dir)
+    
+    FileUtils.mv file[:tempfile], "#{dst_dir}/#{file[:filename]}"
+    
+    Gem::Indexer.new("#{APP_ROOT}/public").generate_index
+    
     #return [400, {"Conten-Type" => "text/html"}, [""]] if request.params['file'].nil?
     
     [200, {"Content-Type" => "text/html"}, ["OK!"]]
