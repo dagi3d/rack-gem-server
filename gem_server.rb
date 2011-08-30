@@ -6,14 +6,30 @@ class GemServer
   def call(env)
     request = Rack::Request.new(env)
     case request.path_info
+    when "/"
+      list_gems(request)
     when "/push"
       upload_gem(request)
     else
-      [200, {"Content-Type" => "text/html"}, ["we"]]
+      [404, {"Content-Type" => "text/html"}, ["Page not found"]]
     end
   end
   
   private
+  def list_gems(request)
+    out = <<-HTML
+    <html>
+      <body>
+      <ul>
+        #{gem_indexer.gem_file_list.map {|gem| '<li>' + File.basename(gem) + '</li>'}.join}
+      </ul>
+      </body>
+    </html>
+    HTML
+
+    [200, {"Content-Type" => "text/html"}, [out]]
+  end
+  
   def upload_gem(request)
     return [500, {"Content-Type" => "text/html"}, [""]] unless request.post?
     file = request.params['file']
@@ -24,10 +40,12 @@ class GemServer
     
     FileUtils.mv file[:tempfile], "#{dst_dir}/#{file[:filename]}"
     
-    Gem::Indexer.new("#{APP_ROOT}/public").generate_index
-    
-    #return [400, {"Conten-Type" => "text/html"}, [""]] if request.params['file'].nil?
-    
+    gem_indexer.generate_index
+        
     [200, {"Content-Type" => "text/html"}, ["OK!"]]
+  end
+  
+  def gem_indexer
+    @gem_indexer ||= Gem::Indexer.new("#{APP_ROOT}/public")
   end
 end
