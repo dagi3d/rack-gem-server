@@ -15,12 +15,13 @@ describe GemServer do
   
   context "post /push" do
     let(:local_file) { Rack::Test::UploadedFile.new(File.expand_path('../foo-0.0.1.gem', __FILE__)) }
-    let(:gem_index) { Gem::Indexer.new("#{APP_ROOT}/public") }
+    let(:invalid_local_file) {Rack::Test::UploadedFile.new(File.expand_path('../invalid-gem.0.0.1.gem', __FILE__))}
+    let(:gem_indexer) { mock(Gem::Indexer) }
   
     
     before do
-      Gem::Indexer.stub(:new).and_return(gem_index)
-      gem_index.stub(:generate_index).and_return(true)
+      gem_indexer.stub!(:generate_index).and_return(true)
+      Gem::Indexer.stub(:new).and_return(gem_indexer)
     end
     
     it "should not respond to post /push when no file is given" do
@@ -31,6 +32,11 @@ describe GemServer do
     it "should respond to post /push when a gile is given" do
       post "/push", :file => local_file
       last_response.should be_ok
+    end
+    
+    it "should raise an exception when the uploaded file is not a valid gem" do
+      post "/push", :file => invalid_local_file
+      last_response.should_not be_ok
     end
   
     it "should not respond to get /push" do
@@ -46,9 +52,8 @@ describe GemServer do
     end
   
     it "should generate the index on public/gems" do
-      #gem_index = 
-      #Gem::Indexer.stub(:new).and_return(gem_index)
-      Gem::Indexer.should_receive(:new).with("#{APP_ROOT}/public").and_return(gem_index)
+      Gem::Indexer.should_receive(:new).with("#{APP_ROOT}/public")
+      gem_indexer.should_receive(:generate_index)
       post "/push", :file => local_file
     end
   end
